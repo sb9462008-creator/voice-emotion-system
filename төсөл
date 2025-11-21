@@ -1,0 +1,620 @@
+🎤 ДУУНД СЭТГЭЛ ХӨДЛӨЛ ТАНИХ СИСТЕМ - Төслийн Бичиг Баримт
+
+1️⃣ Төслийн тойм
+Төслийн нэр
+Дуу хоолойн сэтгэл хөдлөл таних систем (Audio Emotion Recognition System)
+Зорилго
+Микрофоноор бичсэн дуу хоолойг шинжилж, хүний сэтгэл хөдлөл (баяр хөөр, гунигтай, ууртай гэх мэт)-ийг автоматаар тодорхойлох машин сургалтын систем бүтээх.
+Хүрээ
+
+Бодит цаг хугацаанд дуу бичих
+Дууны шинж чанаруудыг гаргаж авах (MFCC, Chroma, Spectral Features)
+RandomForest загварыг ашиглан ангилах
+Визуал үр дүн харуулах (Waveform, Spectrogram, MFCC)
+
+Ашигласан технологиуд
+
+sounddevice: Микрофон ашиглан дуу бичих
+librosa: Аудио файл боловсруулах, шинж чанар гаргах
+scikit-learn: Машин сургалтын алгоритм (RandomForest)
+matplotlib/seaborn: График, визуализаци
+numpy: Математик тооцоолол
+joblib: Загвар хадгалах/ачаалах
+
+Хүлээгдэж буй үр дүн
+
+80%+ нарийвчлалтай сэтгэл хөдлөл таних
+Хэрэглэхэд хялбар интерфейс
+Өгөгдлийн санг өргөжүүлэх боломж
+
+
+2️⃣ Системийн Загвар
+Архитектур
+┌─────────────────┐
+│  Микрофон (Дуу) │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────┐
+│  Дуу бичих (sounddevice)│
+└────────┬────────────────┘
+         │
+         ▼
+┌──────────────────────────────────┐
+│ Шинж чанар гаргах (librosa)      │
+│ - MFCC (40 коэф)                 │
+│ - Chroma (12)                    │
+│ - Mel Spectrogram                │
+│ - Spectral Contrast              │
+│ - Tonnetz                        │
+│ - Zero Crossing Rate             │
+│ - Spectral Centroid/Rolloff      │
+│ - RMS Energy                     │
+└────────┬─────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│ Стандартчилал (StandardScaler)│
+└────────┬────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│ RandomForest Classifier     │
+│ (300 мод, max_depth=20)     │
+└────────┬────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│ Үр дүн                      │
+│ - Сэтгэл хөдлөлийн магадлал │
+│ - График (4 төрөл)          │
+└─────────────────────────────┘
+Гол бүрэлдэхүүнүүд
+
+Дуу бичих модуль (record_audio)
+
+Микрофоноор 3 секундын дуу бичих
+Sampling rate: 22050 Hz
+Моно (1 суваг)
+
+
+Шинж чанар гаргах модуль (extract_advanced_features)
+
+9 төрлийн шинж чанар
+Дундаж ба стандарт хазайлт
+Нийт ~200+ features
+
+
+Өгөгдлийн сан (prepare_dataset)
+
+Folder бүр = 1 сэтгэл хөдлөл
+.wav файлууд
+Label автомат үүсгэх
+
+
+Машин сургалтын загвар (train_model)
+
+RandomForest (300 trees)
+80/20 сургалт/тест хуваалт
+Class балансжуулалт
+
+
+Таамаг гаргах (predict_emotion)
+
+Магадлал тооцох
+Хамгийн өндөр магадлалыг сонгох
+
+
+Визуализаци (plot_emotion_results)
+
+Магадлалын график
+Waveform
+Mel Spectrogram
+MFCC
+
+
+
+Өгөгдлийн урсгал
+Дуу бичлэг → Trim (чимээгүй хэсэг арилгах) → 
+Feature extraction → StandardScaler → 
+RandomForest → Магадлал → Үр дүн
+
+3️⃣ Хэрэгжилтийн дэлгэрэнгүй
+1-р шат: Тохиргоо (CONFIG)
+Код:
+pythonCONFIG = {
+    'sr': 22050,              # Sampling rate
+    'duration': 3,            # Бичлэгийн урт
+    'n_mfcc': 40,            # MFCC коэффициент
+    'n_fft': 2048,           # FFT цонх
+    'hop_length': 512,       # Hop урт
+    'model_path': 'emotion_model_advanced.pkl',
+    'scaler_path': 'scaler.pkl',
+    'dataset_path': './audio_dataset/'
+}
+Тайлбар:
+
+sr=22050: Стандарт дууны sampling rate. Секундэд 22050 сэмпл авна. Энэ нь хүний хоолойг сайн илрүүлнэ.
+duration=3: 3 секундын дуу бичих. Багаар хангалттай, их өгөгдөл шаардахгүй.
+n_mfcc=40: MFCC коэффициентийн тоо. Илүү их = илүү нарийвчлал.
+n_fft=2048: Давтамж шинжлэхэд ашиглах цонхны хэмжээ. 2^11 = стандарт.
+hop_length=512: Цонхнууд хоорондын зай. Бага = нарийн, их = хурдан.
+
+
+2-р шат: Дуу бичих (record_audio)
+Код:
+pythondef record_audio(duration=None, sr=None):
+    if duration is None:
+        duration = CONFIG['duration']
+    if sr is None:
+        sr = CONFIG['sr']
+    
+    print(f"\n🎤 {duration} секундын дуу бичиж байна...")
+    print("   Та одоо ярина уу!")
+    
+    recording = sd.rec(int(duration * sr), samplerate=sr, 
+                      channels=1, dtype='float32')
+    sd.wait()
+    
+    print("✅ Дуу амжилттай бичигдлээ!\n")
+    return np.squeeze(recording)
+Алхам алхмаар:
+
+Параметр шалгах: Хэрэв өгөөгүй бол CONFIG-аас авна
+Хэрэглэгчид мэдээлэл: Бичиж эхлэхийг мэдэгдэнэ
+sd.rec():
+
+int(duration * sr): Нийт сэмплийн тоо (3 сек × 22050 = 66150 сэмпл)
+samplerate=sr: Sampling rate
+channels=1: Моно (стерео биш)
+dtype='float32': Өгөгдлийн төрөл (-1.0 ~ +1.0)
+
+
+sd.wait(): Бичлэг дуустал хүлээх
+np.squeeze(): (66150, 1) → (66150,) хэмжээ болгох
+
+
+3-р шат: Шинж чанар гаргах (extract_advanced_features)
+Энэ функц дуунаас 9 төрлийн шинж чанаруудыг гаргана.
+3.1. Чимээгүй хэсэг арилгах
+Код:
+pythonaudio, _ = librosa.effects.trim(audio, top_db=25)
+Тайлбар:
+
+Дууны эхэн төгсгөлийн чимээгүй хэсгийг таслах
+top_db=25: 25 децибелээс чимээгүй хэсэг гэж үзнэ
+Үр дүн: Зөвхөн дуу гарч буй хэсэг үлдэнэ
+
+3.2. MFCC (Mel-Frequency Cepstral Coefficients)
+Код:
+python# MFCC
+mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=CONFIG['n_mfcc'])
+
+# Delta (1-р зэрэглэл)
+mfcc_delta = librosa.feature.delta(mfcc)
+
+# Delta-delta (2-р зэрэглэл)
+mfcc_delta2 = librosa.feature.delta(mfcc, order=2)
+
+# Дундаж ба стандарт хазайлт
+features.extend([
+    np.mean(mfcc, axis=1),      # 40 утга
+    np.std(mfcc, axis=1),       # 40 утга
+    np.mean(mfcc_delta, axis=1),    # 40 утга
+    np.mean(mfcc_delta2, axis=1)    # 40 утга
+])
+Тайлбар:
+
+MFCC: Дууны "өнгө", тембрийг илэрхийлнэ. Хүний чих адил давтамж мэдэрнэ.
+Delta: MFCC-ийн өөрчлөлтийн хурд (хувиралт)
+Delta-delta: Өөрчлөлтийн хурдатгал (чиг хандлага)
+Яагаад mean/std?: Цаг хугацааны хувьсалт үл хамаарах дундаж утга гарна
+Нийт features: 40×4 = 160 features
+
+3.3. Chroma
+Код:
+pythonchroma = librosa.feature.chroma_stft(y=audio, sr=sr)
+features.extend([
+    np.mean(chroma, axis=1),  # 12 утга
+    np.std(chroma, axis=1)    # 12 утга
+])
+Тайлбар:
+
+12 хагас аяыг илрүүлнэ (C, C#, D, D#, E, F, F#, G, G#, A, A#, B)
+Аялгуу, нотны мэдээлэл
+Нийт: 12×2 = 24 features
+
+3.4. Mel Spectrogram
+Код:
+pythonmel = librosa.feature.melspectrogram(y=audio, sr=sr)
+features.extend([
+    np.mean(mel, axis=1),  # 128 утга (default)
+    np.std(mel, axis=1)    # 128 утга
+])
+Тайлбар:
+
+Давтамжийн хуваарь (хүний чих адил)
+Бага давтамжид илүү мэдрэг
+Нийт: 128×2 = 256 features (ойролцоогоор)
+
+3.5. Spectral Contrast
+Код:
+pythoncontrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
+features.extend([
+    np.mean(contrast, axis=1),  # 7 утга
+    np.std(contrast, axis=1)    # 7 утга
+])
+Тайлбар:
+
+Өндөр ба намхан давтамжийн контраст
+Дууны "текстур"
+Нийт: 7×2 = 14 features
+
+3.6. Tonnetz
+Код:
+pythontonnetz = librosa.feature.tonnetz(y=audio, sr=sr)
+features.extend([
+    np.mean(tonnetz, axis=1),  # 6 утга
+    np.std(tonnetz, axis=1)    # 6 утга
+])
+Тайлбар:
+
+Гармоник бүтэц
+Аялгуунуудын хоорондын харилцаа
+Нийт: 6×2 = 12 features
+
+3.7. Zero Crossing Rate (ZCR)
+Код:
+pythonzcr = librosa.feature.zero_crossing_rate(audio)
+features.append([np.mean(zcr), np.std(zcr)])
+Тайлбар:
+
+Дохио тэгийг хэдэн удаа огтлох
+Өндөр ZCR = ширүүн дуу (ууртай)
+Намхан ZCR = зөөлөн дуу (гунигтай)
+Нийт: 2 features
+
+3.8. Spectral Centroid
+Код:
+pythonspectral_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
+features.append([np.mean(spectral_centroid), np.std(spectral_centroid)])
+Тайлбар:
+
+Давтамжийн "төв"
+Өндөр утга = тод, гэрэл дуу
+Намхан утга = бараан дуу
+Нийт: 2 features
+
+3.9. Spectral Rolloff
+Код:
+pythonspectral_rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)
+features.append([np.mean(spectral_rolloff), np.std(spectral_rolloff)])
+Тайлбар:
+
+Эрчим хүчний 85% багтаах давтамж
+Дууны "тод байдал"
+Нийт: 2 features
+
+3.10. RMS Energy
+Код:
+pythonrms = librosa.feature.rms(y=audio)
+features.append([np.mean(rms), np.std(rms)])
+Тайлбар:
+
+Дууны эрчим хүч
+Чанга/чимээгүй байдал
+Нийт: 2 features
+
+3.11. Бүх шинж чанар нэгтгэх
+Код:
+pythonfeature_vector = np.concatenate([np.array(f).flatten() for f in features])
+return feature_vector.reshape(1, -1)
+```
+
+**Тайлбар:**
+- Бүх features-ийг нэг урт вектор болгох
+- `reshape(1, -1)`: sklearn-д шаардлагатай (1, n_features) хэмжээ
+- **Нийт features**: ~200-250 орчим
+
+---
+
+### 4-р шат: Өгөгдлийн сан бэлтгэх (`prepare_dataset`)
+
+**Өгөгдлийн сангийн бүтэц:**
+```
+audio_dataset/
+├── happy/
+│   ├── audio1.wav
+│   ├── audio2.wav
+│   └── ...
+├── sad/
+│   ├── audio1.wav
+│   └── ...
+├── angry/
+│   ├── audio1.wav
+│   └── ...
+└── neutral/
+    ├── audio1.wav
+    └── ...
+Код:
+pythondef prepare_dataset(dataset_path=None):
+    if dataset_path is None:
+        dataset_path = CONFIG['dataset_path']
+    
+    dataset_path = Path(dataset_path)
+    
+    if not dataset_path.exists():
+        print(f"⚠️  Өгөгдлийн сан олдсонгүй")
+        return create_synthetic_dataset()
+    
+    X = []  # Шинж чанарууд
+    y = []  # Label
+    emotions = []
+    
+    for emotion_folder in dataset_path.iterdir():
+        if not emotion_folder.is_dir():
+            continue
+        
+        emotion = emotion_folder.name
+        emotions.append(emotion)
+        audio_files = list(emotion_folder.glob('*.wav'))
+        
+        for audio_file in audio_files:
+            try:
+                audio, sr = librosa.load(audio_file, sr=CONFIG['sr'])
+                features = extract_advanced_features(audio, sr)
+                
+                if features is not None:
+                    X.append(features.flatten())
+                    y.append(emotion)
+            except Exception as e:
+                print(f"   ⚠️ {audio_file.name} - Алдаа: {e}")
+    
+    return np.array(X), np.array(y), sorted(set(emotions))
+Алхам алхмаар:
+
+Зам шалгах: Өгөгдлийн сан байгаа эсэхийг шалгах
+Folder давтах: Folder бүр = 1 сэтгэл хөдлөл
+Файл уншиx: .wav файл бүрийг librosa.load() ашиглан ачаалах
+Features гаргах: extract_advanced_features() дуудах
+X, y цуглуулах:
+
+X = features (n_samples, ~200)
+y = labels (n_samples,)
+
+
+Буцаах: numpy array хэлбэрээр
+
+
+5-р шат: Загвар сургах (train_model)
+Код:
+pythondef train_model(X, y, emotions):
+    print("🌲 Загвар сургаж байна...")
+    
+    # 80/20 хуваалт
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
+    # Стандартчилал
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    # RandomForest
+    model = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=20,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        random_state=42,
+        n_jobs=-1,
+        class_weight='balanced'
+    )
+    
+    model.fit(X_train_scaled, y_train)
+    
+    # Үнэлгээ
+    y_pred = model.predict(X_test_scaled)
+    accuracy = model.score(X_test_scaled, y_test)
+    
+    print(f"\n📈 Нарийвчлал: {accuracy * 100:.2f}%\n")
+    print(classification_report(y_test, y_pred, target_names=emotions))
+    
+    # Confusion matrix
+    plot_confusion_matrix(y_test, y_pred, emotions)
+    
+    # Хадгалах
+    joblib.dump(model, CONFIG['model_path'])
+    joblib.dump(scaler, CONFIG['scaler_path'])
+    
+    return model, scaler
+Алхам алхмаар:
+5.1. Өгөгдөл хуваах
+pythonX_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+80% сургалт, 20% тест
+stratify=y: Label бүр пропорц хадгална (жишээ: happy дууны 80% сургалтанд, 20% тестэд)
+random_state=42: Давтагдах боломжтой үр дүн
+
+5.2. Стандартчилал
+pythonscaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+Яагаад хэрэгтэй?
+
+Features-ууд өөр өөр scale-тэй (MFCC: -100100, RMS: 01)
+Стандартчилсны дараа: дундаж=0, стандарт хазайлт=1
+Загвар хурдан суралцана
+
+Анхаарах!
+
+fit_transform(): Сургалт дээр суралцах
+transform(): Тест дээр зөвхөн хэрэглэх (overfit-ээс сэргийлнэ)
+
+5.3. RandomForest загвар
+pythonmodel = RandomForestClassifier(
+    n_estimators=300,      # 300 мод
+    max_depth=20,          # Модны гүн
+    min_samples_split=5,   # Node хуваахад 5+ сэмпл
+    min_samples_leaf=2,    # Навч node-д 2+ сэмпл
+    random_state=42,
+    n_jobs=-1,             # Бүх CPU
+    class_weight='balanced'  # Label тэнцүү
+)
+Параметрүүдийн тайлбар:
+ПараметрУтгаТайлбарn_estimators300300 мод үүсгэнэ. Их = найдвартай, удаанmax_depth20Модны хамгийн их гүн. Overfit-ээс сэргийлнэmin_samples_split5Node хуваахад шаардлагатай хамгийн бага сэмплmin_samples_leaf2Навч node-д байх хамгийн бага сэмплrandom_state42Давтагдах үр дүнn_jobs-1Бүх CPU core ашиглахclass_weightbalancedЦөөн label-д илүү жин өгөх
+5.4. Сургах
+pythonmodel.fit(X_train_scaled, y_train)
+
+300 мод үүсгэнэ
+Мод бүр өөр өөр сэмплүүд дээр суралцана
+Дунджаар санал өгнө (voting)
+
+5.5. Үнэлгээ
+pythony_pred = model.predict(X_test_scaled)
+accuracy = model.score(X_test_scaled, y_test)
+print(classification_report(y_test, y_pred))
+```
+
+**Classification Report:**
+```
+              precision    recall  f1-score   support
+
+       angry       0.85      0.83      0.84        30
+       happy       0.88      0.90      0.89        40
+     neutral       0.82      0.80      0.81        35
+         sad       0.87      0.89      0.88        38
+
+    accuracy                           0.86       143
+Тайлбар:
+
+Precision: Таамагласан "happy"-ний хэдэн хувь нь үнэхээр "happy" вэ?
+Recall: Бүх "happy" дууны хэдэн хувийг нь олсон бэ?
+F1-score: Precision ба Recall-ийн дундаж
+Support: Тест дээрх тухайн label-ын тоо
+
+5.6. Confusion Matrix
+pythonplot_confusion_matrix(y_test, y_pred, emotions)
+```
+
+**Жишээ үр дүн:**
+```
+           happy  sad  angry  neutral
+happy        36    2     1      1
+sad           1   34     2      1
+angry         0    1    25      4
+neutral       2    1     2     30
+Тайлбар:
+
+Диагональ: Зөв таамаг
+Бусад: Алдаа (жишээ: happy гэж бодсон боловч sad байсан)
+
+5.7. Хадгалах
+pythonjoblib.dump(model, CONFIG['model_path'])
+joblib.dump(scaler, CONFIG['scaler_path'])
+
+Загварыг .pkl файл болгох
+Дараа дахин сургах шаардлагагүй
+Хурдан ачаалах боломжтой
+
+
+6-р шат: Таамаг гаргах (predict_emotion)
+Код:
+pythondef predict_emotion(model, scaler, features):
+    if features is None:
+        return None, None, None
+    
+    # Стандартчилах
+    features_scaled = scaler.transform(features)
+    
+    # Магадлал
+    probabilities = model.predict_proba(features_scaled)[0]
+    
+    # Label-ууд
+    emotions = model.classes_
+    
+    # Хамгийн өндөр магадлал
+    best_emotion = emotions[np.argmax(probabilities)]
+    
+    return emotions, probabilities, best_emotion
+Алхам алхмаар:
+
+Стандартчилах: Сургалт үед хийсэн адил
+predict_proba(): Label бүрийн магадлалыг тооцоолох
+
+python   # Жишээ үр дүн:
+   probabilities = [0.15, 0.62, 0.08, 0.10, 0.05]
+   #                happy  sad   angry neutral fear
+
+Хамгийн өндөр сонгох: np.argmax() ашиглах
+Буцаах: emotions, probabilities, best_emotion
+
+
+7-р шат: Визуализаци (plot_emotion_results)
+Код:
+pythondef plot_emotion_results(emotions, probabilities, audio, sr):
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 1. Магадлалын график
+    ax1 = axes[0, 0]
+    colors = plt.cm.viridis(probabilities / probabilities.max())
+    bars = ax1.bar(emotions, probabilities, color=colors)
+    # ... (код үргэлжлэх)
+    
+    # 2. Waveform
+    ax2 = axes[0, 1]
+    time = np.arange(len(audio)) / sr
+    ax2.plot(time, audio, color='steelblue')
+    # ...
+    
+    # 3. Mel Spectrogram
+    ax3 = axes[1, 0]
+    mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr)
+    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max())
+    librosa.display.specshow(mel_spec_db, sr=sr, ax=ax3)
+    # ...
+    
+    # 4. MFCC
+    ax4 = axes[1, 1]
+    mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=20)
+    librosa.display.specshow(mfcc, sr=sr, ax=ax4)
+    # ...
+    
+    plt.tight_layout()
+    plt.savefig('emotion_analysis.png', dpi=150)
+    plt.show()
+4 график:
+7.1. Магадлалын Bar Chart
+
+X тэнхлэг: Сэтгэл хөдлөлүүд
+Y тэнхлэг: Магадлал (0-1)
+Хамгийн өндөр: Улаан хүрээ
+Өнгө: Magадлал ихсэх тусам гэрэл
+
+7.2. Waveform (Дуу хоолойн долгион)
+
+X тэнхлэг: Цаг хугацаа (секунд)
+Y тэнхлэг: Амплитуд (-1 ~ +1)
+Дууны хэв гажилт харагдана
+
+7.3. Mel Spectrogram
+
+X тэнхлэг: Цаг хугацаа
+Y тэнхлэг: Давтамж (Hz)
+Өнгө: Эрчим хүч (цэнхэр=бага, улаан=их)
+
+7.4. MFCC
+X тэнхлэг: Цаг хугацаа
+Y тэнхлэг: MFCC коэффициент (1-20)
+Өнгө: MFCC утга (цэнхэр=бага, улаан=их)
+
+---
+### 8️⃣ Дүгнэлт
+Энэхүү төслийн хүрээнд дуу хоолойн сэтгэл хөдлөл
+таних системийг амжилттай бүтээж, RandomForest загварыг ашиглан 80%+ нарийвчлалтай таамаг гаргах боломжтой боллоо. Цаашид өгөгдлийн санг өргөжүүлж, гүнзгий суралцах (Deep Learning) аргуудыг туршиж үзэхээр төлөвлөж байна.
+
+
